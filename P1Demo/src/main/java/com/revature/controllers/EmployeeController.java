@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 @RestController //a subset of the @Controller stereotype annotation. makes a class a bean, plus MVC stuff!
 @RequestMapping("/employee") //every request to 5000/p1/employee will go to this Class
@@ -48,7 +49,8 @@ public class EmployeeController {
         //save the incoming employee to the DB, and save the return in a variable (for error handling)
         Employee newEmp = eDAO.save(e);
 
-        //if insert fails, newEmp will be null (that's just how the save() method works)
+        //if insert fails, newEmp will be null
+        //TODO: try/catch instead of null check
         if(newEmp == null){
             //return a 400 status code (BAD REQUEST) and no response body (.build())
             return ResponseEntity.badRequest().build();
@@ -96,5 +98,42 @@ public class EmployeeController {
 //
 //    }
 
+    //This method will update an ENTIRE employee record (PUT request)
+    @PutMapping
+    public ResponseEntity<Employee> updateEntireEmployee(@RequestBody Employee e){
+
+        //Gather the employee from the database using findById
+        Optional<Employee> originalEmployee = eDAO.findById(e.getEmployeeId());
+
+        //if the employee is found, perform the update
+        if(originalEmployee.isPresent()){
+            Employee employeeToUpdate = e;
+            return ResponseEntity.accepted().body(eDAO.save(employeeToUpdate));
+        }
+
+        //return the updated Employee
+        return ResponseEntity.badRequest().build();
+
+    }
+
+    //This method will update only PART of an employee record (PATCH request)
+    @PatchMapping("/{username}")
+    public ResponseEntity<Employee> updateUsername(@RequestBody String s, @PathVariable("username") String u){
+
+        //Gather the employee from the database using findById
+        Optional<Employee> originalEmployee = eDAO.findByUsername(s);
+
+        //if the employee is found, perform the update
+        if(originalEmployee.isPresent()){
+            //Employee employeeToUpdate = originalEmployee.get();
+            Employee employeeToUpdate = originalEmployee.get();
+            employeeToUpdate.setUsername(u);
+            return ResponseEntity.accepted().body(eDAO.save(employeeToUpdate));
+        }
+
+        //return the updated Employee
+        return ResponseEntity.badRequest().build();
+
+    }
 
 }
