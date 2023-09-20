@@ -77,4 +77,17 @@ public class EmployeeController {
 
     }
 
+    //This method will update an ENTIRE employee record (PUT request)
+    @PutMapping
+    public ResponseEntity<Employee> updateEntireEmployee(@RequestBody Employee e){
+
+        //This Employee will either be null (if update fails) or the new Employee record
+        Employee updatedEmployee = eDAO.updateEmployee(e);
+
+        //return the updated Employee
+        return ResponseEntity.accepted().body(updatedEmployee);
+
+    }
+
+
 }
