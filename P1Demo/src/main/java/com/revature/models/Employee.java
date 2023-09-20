@@ -28,6 +28,11 @@ public class Employee {
     public Employee() {
     }
 
+    public Employee(String username, String password) {
+        this.username = username;
+        this.password = password;
+    }
+
     public Employee(int employeeId, String username, String password) {
         this.employeeId = employeeId;
         this.username = username;

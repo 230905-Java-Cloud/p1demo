@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
+import java.util.List;
 
 @RestController //a subset of the @Controller stereotype annotation. makes a class a bean, plus MVC stuff!
 @RequestMapping("/employee") //every request to 5000/p1/employee will go to this Class
@@ -24,35 +25,41 @@ public class EmployeeController {
 
     //HTTP REQUESTS--------------------------
 
-//    //this method will get all employees. it will be reached by a GET request to /employee
-//    @GetMapping
-//    public ResponseEntity<ArrayList<Employee>> getAllEmployees(){
-//
-//        //call on the DAO to get our Employees
-//        ArrayList<Employee> employees = eDAO.getAllEmployees();
-//
-//        //return a ResponseEntity, set the status code to 200 (OK), and set the response body data
-//        return ResponseEntity.status(200).body(employees);
-//
-//        //no error handling in this, see methods below
-//
-//    }
-//
-//    @PostMapping //this method accept HTTP POST requests ending in /employee
-//    public ResponseEntity<Employee> addEmployee(@RequestBody Employee e){
-//
-//        //thanks to @RequestBody in the parameter of this method...
-//        //the body of the request will get automatically converted into an Employee object called e
-//
-//        //save the incoming employee to the DB, and save the return in a variable (for error handling)
-//        Employee newEmp = eDAO.insertEmployee(e);
-//
-//        //return a 202 (ACCEPTED) status code, as well as the new user in the response body
-//        return ResponseEntity.accepted().body(newEmp);
-//        //accepted() is a shorthand of .status(202). They do the same thing
-//
-//    }
-//
+    //this method will get all employees. it will be reached by a GET request to /employee
+    @GetMapping
+    public ResponseEntity<List<Employee>> getAllEmployees(){
+
+        //we will call on the DAO within our return to get our Employees
+
+        //return a ResponseEntity, set the status code to 200 (OK), and set the response body data
+        return ResponseEntity.status(200).body(eDAO.findAll());
+
+        //no error handling in this, see methods below
+
+    }
+
+
+    @PostMapping //this method accept HTTP POST requests ending in /employee
+    public ResponseEntity<Employee> addEmployee(@RequestBody Employee e){
+
+        //thanks to @RequestBody in the parameter of this method...
+        //the body of the request will get automatically converted into an Employee object called e
+
+        //save the incoming employee to the DB, and save the return in a variable (for error handling)
+        Employee newEmp = eDAO.save(e);
+
+        //if insert fails, newEmp will be null (that's just how the save() method works)
+        if(newEmp == null){
+            //return a 400 status code (BAD REQUEST) and no response body (.build())
+            return ResponseEntity.badRequest().build();
+        }
+
+        //return a 202 (ACCEPTED) status code, as well as the new user in the response body
+        return ResponseEntity.accepted().body(newEmp);
+        //accepted() is a shorthand of .status(202). They do the same thing
+
+    }
+
 //    //this method takes in an id in the request params and returns the Employee with that id
 //    @GetMapping("/{id}") //get requests to /employee/SOME-VALUE will be here
 //    public ResponseEntity<Employee> getEmployeeById(@PathVariable("id") int id){
