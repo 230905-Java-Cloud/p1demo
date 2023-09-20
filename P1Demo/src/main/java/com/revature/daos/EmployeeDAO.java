@@ -1,42 +1,22 @@
 package com.revature.daos;
 
 import com.revature.models.Employee;
+import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
-import java.util.ArrayList;
+/* By extending JpaRepository, we get access to various DAO methods that we DON'T NEED TO WRITE
+    ctrl + click on JpaRepository to see what methods are provided for us already
 
-//fake DAO to demonstrate Spring MVC before talking about Spring Data
-@Repository
-public class EmployeeDAO {
+    JpaRepository takes two values in its generic -
+    -the DB table/model we're dealing with
+    -the data type of the model's ID (in wrapper class form)
+ */
 
-    public static ArrayList<Employee> employees = new ArrayList<Employee>(){{
-        add(new Employee(1, "Spongebobbo", "password"));
-        add(new Employee(2, "MoneyKrab$", "password"));
-        add(new Employee(3, "itssquiddyT", "unrecognizedTalent"));
-    }};
+@Repository //we want this interface to be a bean
+public interface EmployeeDAO extends JpaRepository<Employee, Integer> {
 
-    public ArrayList<Employee> getAllEmployees() {
-        return employees;
-    }
+    //our DAO is done!
 
-    public Employee getEmployeeById(int id) {
-        if(id>employees.size() || id<1) {
-            return null;
-        }
-        return employees.get(id - 1);
-    }
+    //for now - TODO: I will show custom DAO methods for more complicated procedures
 
-    public Employee updateEmployee(Employee e) {
-        if(e.getEmployeeId()> employees.size()||e.getEmployeeId()<1){
-            return null;
-        } else {
-            employees.set(e.getEmployeeId()-1, e);
-            return getEmployeeById(e.getEmployeeId());
-        }
-    }
-
-    public Employee insertEmployee(Employee e) {
-        employees.add(e);
-        return e;
-    }
 }

@@ -2,12 +2,23 @@ package com.revature.models;
 
 import org.springframework.stereotype.Component;
 
+import javax.persistence.*;
+
+@Entity //This annotation registers this class as a DB table (AKA DB entities)
+@Table(name = "employees") //This lets us give the DB table a different name (and other properties)
 @Component //This is one of the 4 stereotype annotations
 //A stereotype annotation makes a class a bean (so it can inject dependencies and be injected as a dep.)
 public class Employee {
 
+    @Id //This will make this field the primary key
+    @GeneratedValue(strategy = GenerationType.IDENTITY) //This makes our PK serial
     private int employeeId;
+
+    @Column(nullable = false, unique = true) //@Column is how we can set constraints!
     private String username;
+
+    //I would want this to also not be null, but I want to demonstrate that you DON'T need @Column
+    //this will become a DB column even without @Column
     private String password;
 
     //TODO: add Role when we talk about Spring Data
