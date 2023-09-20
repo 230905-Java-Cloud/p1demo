@@ -4,10 +4,7 @@ import com.revature.daos.EmployeeDAO;
 import com.revature.models.Employee;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
 
@@ -41,6 +38,43 @@ public class EmployeeController {
 
     }
 
+    @PostMapping //this method accept HTTP POST requests ending in /employee
+    public ResponseEntity<Employee> addEmployee(@RequestBody Employee e){
 
+        //thanks to @RequestBody in the parameter of this method...
+        //the body of the request will get automatically converted into an Employee object called e
+
+        //save the incoming employee to the DB, and save the return in a variable (for error handling)
+        Employee newEmp = eDAO.insertEmployee(e);
+
+        //return a 202 (ACCEPTED) status code, as well as the new user in the response body
+        return ResponseEntity.accepted().body(newEmp);
+        //accepted() is a shorthand of .status(202). They do the same thing
+
+    }
+
+    //this method takes in an id in the request params and returns the Employee with that id
+    @GetMapping("/{id}") //get requests to /employee/SOME-VALUE will be here
+    public ResponseEntity<Employee> getEmployeeById(@PathVariable("id") int id){
+
+        //@PathVariable will allow us to get the user-inputted PATH VARIABLE sent in the request
+
+        //if the user sends in a invalid id, send a bad request (400) status code and no response body
+        if(id <= 0){
+            return ResponseEntity.badRequest().build(); //build is used to send no data back
+        }
+
+        //get an Employee by id from the DAO
+        Employee e = eDAO.getEmployeeById(id);
+
+        //if there is no user associated with the inputted id, send a 204 (no content) and no response body
+        if(e == null) {
+            return ResponseEntity.noContent().build();
+        }
+
+        //if none of the checks get activated, send the user!
+        return ResponseEntity.ok().body(e);
+
+    }
 
 }
