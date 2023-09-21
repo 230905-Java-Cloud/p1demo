@@ -62,29 +62,34 @@ public class EmployeeController {
 
     }
 
-//    //this method takes in an id in the request params and returns the Employee with that id
-//    @GetMapping("/{id}") //get requests to /employee/SOME-VALUE will be here
-//    public ResponseEntity<Employee> getEmployeeById(@PathVariable("id") int id){
-//
-//        //@PathVariable will allow us to get the user-inputted PATH VARIABLE sent in the request
-//
-//        //if the user sends in a invalid id, send a bad request (400) status code and no response body
-//        if(id <= 0){
-//            return ResponseEntity.badRequest().build(); //build is used to send no data back
-//        }
-//
-//        //get an Employee by id from the DAO
-//        Employee e = eDAO.getEmployeeById(id);
-//
-//        //if there is no user associated with the inputted id, send a 204 (no content) and no response body
-//        if(e == null) {
-//            return ResponseEntity.noContent().build();
-//        }
-//
-//        //if none of the checks get activated, send the user!
-//        return ResponseEntity.ok().body(e);
-//
-//    }
+    //this method takes in an id in the request params and returns the Employee with that id
+    @GetMapping("/{id}") //get requests to /employee/SOME-VALUE will be here
+    public ResponseEntity<Employee> getEmployeeById(@PathVariable("id") int id){
+
+        //@PathVariable will allow us to get the user-inputted PATH VARIABLE sent in the request
+
+        //if the user sends in a invalid id, send a bad request (400) status code and no response body
+        if(id <= 0){
+            return ResponseEntity.badRequest().build(); //build is used to send no data back
+        }
+
+        /*findById() from JpaRepository returns an "Optional"
+        Optionals lend to code flexibility because it MAY or MAY NOT contain the request object
+        This helps us avoid NullPointerExceptions */
+        Optional<Employee> e = eDAO.findById(id);
+
+        //we can check if the optional has our value with .isPresent() or .isEmpty()
+        if(e.isPresent()){
+            //we can extract the Optional's data with .get()
+            return ResponseEntity.ok().body(e.get()); //return the Employee with a 200 status code
+        } else {
+            return ResponseEntity.noContent().build(); //otherwise, return no content
+        }
+
+    }
+
+    //TODO: get by username
+
 //
 //    //This method will update an ENTIRE employee record (PUT request)
 //    @PutMapping
@@ -98,42 +103,6 @@ public class EmployeeController {
 //
 //    }
 
-    //This method will update an ENTIRE employee record (PUT request)
-    @PutMapping
-    public ResponseEntity<Employee> updateEntireEmployee(@RequestBody Employee e){
-
-        //Gather the employee from the database using findById
-        Optional<Employee> originalEmployee = eDAO.findById(e.getEmployeeId());
-
-        //if the employee is found, perform the update
-        if(originalEmployee.isPresent()){
-            Employee employeeToUpdate = e;
-            return ResponseEntity.accepted().body(eDAO.save(employeeToUpdate));
-        }
-
-        //return the updated Employee
-        return ResponseEntity.badRequest().build();
-
-    }
-
-    //This method will update only PART of an employee record (PATCH request)
-    @PatchMapping("/{username}")
-    public ResponseEntity<Employee> updateUsername(@RequestBody String s, @PathVariable("username") String u){
-
-        //Gather the employee from the database using findById
-        Optional<Employee> originalEmployee = eDAO.findByUsername(s);
-
-        //if the employee is found, perform the update
-        if(originalEmployee.isPresent()){
-            //Employee employeeToUpdate = originalEmployee.get();
-            Employee employeeToUpdate = originalEmployee.get();
-            employeeToUpdate.setUsername(u);
-            return ResponseEntity.accepted().body(eDAO.save(employeeToUpdate));
-        }
-
-        //return the updated Employee
-        return ResponseEntity.badRequest().build();
-
-    }
+    //TODO: patch for update username
 
 }

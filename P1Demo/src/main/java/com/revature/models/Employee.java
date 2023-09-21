@@ -21,22 +21,40 @@ public class Employee {
     //this will become a DB column even without @Column
     private String password;
 
-    //TODO: add Role when we talk about Spring Data
+    //We are establishing a Many-to-One relationship: many employee can have the same role.
+    //This will make a field for the FK in the employees table
+    @ManyToOne(fetch = FetchType.EAGER, cascade = CascadeType.ALL)
+    @JoinColumn(name = "roleId") //This is how we specify the PK that this FK points to
+    //The name attribute of @JoinColumn will name the column in your table
+    //IMPORTANT NOTE: using @Column here will break this. @JoinColumn takes the role of @Column here
+    private Role role;
+
+    //TODO: Ben will see if there's an easier way to insert employee (without helper variable)
+
+    /* WHAT are fetch and cascade?
+
+    fetch - sets whether the dependency (Role) is eagerly or lazily loaded
+    (typically we want eager loading so the relationship is ready whenever we need it)
+
+    cascade - sets how changes in a table CASCADE to dependent records
+    (with CascadeType.ALL, if a Role is updated/deleted, that operation will cascade to any Employees) */
 
     //boilerplate--------------------------------
 
     public Employee() {
     }
 
-    public Employee(String username, String password) {
-        this.username = username;
-        this.password = password;
-    }
-
-    public Employee(int employeeId, String username, String password) {
+    public Employee(int employeeId, String username, String password, Role role) {
         this.employeeId = employeeId;
         this.username = username;
         this.password = password;
+        this.role = role;
+    }
+
+    public Employee(String username, String password, Role role) {
+        this.username = username;
+        this.password = password;
+        this.role = role;
     }
 
     public int getEmployeeId() {
@@ -63,12 +81,21 @@ public class Employee {
         this.password = password;
     }
 
+    public Role getRole() {
+        return role;
+    }
+
+    public void setRole(Role role) {
+        this.role = role;
+    }
+
     @Override
     public String toString() {
         return "Employee{" +
                 "employeeId=" + employeeId +
                 ", username='" + username + '\'' +
                 ", password='" + password + '\'' +
+                ", role=" + role +
                 '}';
     }
 }
