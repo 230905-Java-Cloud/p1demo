@@ -57,6 +57,14 @@ public class Employee {
         this.role = role;
     }
 
+    //This constructor will be used for inserts.
+    //The ID is auto generated...
+    //and the Role will be added with setRole() before saving to the DB (see the Service method)
+    public Employee(String username, String password) {
+        this.username = username;
+        this.password = password;
+    }
+
     public int getEmployeeId() {
         return employeeId;
     }

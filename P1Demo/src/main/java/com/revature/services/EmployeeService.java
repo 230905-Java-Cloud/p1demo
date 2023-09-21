@@ -1,26 +1,80 @@
 package com.revature.services;
 
 import com.revature.daos.EmployeeDAO;
+import com.revature.daos.RoleDAO;
 import com.revature.models.Employee;
+import com.revature.models.Role;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import javax.swing.text.html.Option;
+import java.util.List;
 import java.util.Optional;
 
 @Service
 public class EmployeeService {
 
     private EmployeeDAO eDAO;
+    private RoleDAO roleDAO;
 
-    @Autowired //Constructor Injection! EmployeeDAO Bean will get automagically injected into this service
-    public EmployeeService(EmployeeDAO eDAO) {
+    @Autowired //Constructor Injection! The DAO Beans will get automagically injected into this service
+    public EmployeeService(EmployeeDAO eDAO, RoleDAO roleDAO) {
         this.eDAO = eDAO;
+        this.roleDAO = roleDAO;
     }
 
-    //TODO: get all, insert, findById
+    //not gonna bother error handling this one - it takes no parameters so there's little room for user error
+    public List<Employee> getAllEmployees(){
 
-    //getEmployeeByUsername
+        return eDAO.findAll();
+
+    }
+
+
+    //insert employee
+    //NOTE: This takes in an employee with only a username and password.
+    //the roleId variable is obtained through the path variable of the POST request.
+    //Also note we needed to constructor inject the RoleDAO above. (@Autowired)
+    public Employee insertEmployee(Employee e, int roleId){
+
+        //TODO: some checks could go here to check for invalid employee fields and roleId > 0.
+
+        //First, we must get the Role associated with the given roleId
+        Optional<Role> role = roleDAO.findById(roleId);
+
+        //if the given Role is found, we can proceed with insertion
+        if(role.isPresent()){
+            e.setRole(role.get()); //extract the Role object, and assign it to the Employee's Role
+            return eDAO.save(e); //save the Employee to the DB, and return the saved Employee
+        } else {
+            throw new IllegalArgumentException("Role could not be found! Aborting Insert");
+        }
+
+
+    }
+
+    //get Employee by id
+    public Employee findByEmployeeId(int id){
+
+        if(id <= 0){
+            throw new IllegalArgumentException("Employees with an id of 0 or less surely can't exist!");
+        }
+
+        /*findById() from JpaRepository returns an "Optional"
+        Optionals lend to code flexibility because it MAY or MAY NOT contain the requested object
+        This helps us avoid NullPointerExceptions */
+        Optional<Employee> employee = eDAO.findById(id);
+
+        //we can check if the optional has our value with .isPresent() or .isEmpty()
+        if(employee.isPresent()){
+            return employee.get(); //we can extract the Optional's data with .get()
+        } else {
+            throw new IllegalArgumentException("Employee id " + id + " does not exist!");
+        }
+
+    }
+
+    //get Employee by Username
     public Employee findByEmployeeUsername(String username){
 
         if(username.equals(null) || username.equals("")){
