@@ -2,6 +2,7 @@ package com.revature.controllers;
 
 import com.revature.daos.EmployeeDAO;
 import com.revature.models.Employee;
+import com.revature.services.EmployeeService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -18,10 +19,12 @@ public class EmployeeController {
     //we need to AUTOWIRE the DAO, to inject it as a dependency of the controller
     //(since we need to use its methods)
     private EmployeeDAO eDAO;
+    private EmployeeService es;
 
     @Autowired //remember, spring boot will automagically inject an eDAO thanks to this annotation
-    public EmployeeController(EmployeeDAO eDAO){
+    public EmployeeController(EmployeeDAO eDAO, EmployeeService es) {
         this.eDAO = eDAO;
+        this.es = es;
     }
 
     //HTTP REQUESTS--------------------------
@@ -63,7 +66,7 @@ public class EmployeeController {
     }
 
     //this method takes in an id in the request params and returns the Employee with that id
-    @GetMapping("/{id}") //get requests to /employee/SOME-VALUE will be here
+    @GetMapping("/id/{id}") //get requests to /employee/SOME-VALUE will be here
     public ResponseEntity<Employee> getEmployeeById(@PathVariable("id") int id){
 
         //@PathVariable will allow us to get the user-inputted PATH VARIABLE sent in the request
@@ -85,23 +88,36 @@ public class EmployeeController {
         } else {
             return ResponseEntity.noContent().build(); //otherwise, return no content
         }
+    }
+
+    //get by username - talked about "ambiguous handler mapping" error
+    @GetMapping("/username/{username}")
+    public ResponseEntity<Object> getEmployeeByUsername(@PathVariable("username") String username){
+
+        try {
+            Employee employee = es.findByEmployeeUsername(username);
+            return ResponseEntity.ok().body(employee);
+        } catch (IllegalArgumentException e){
+            e.printStackTrace();
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
 
     }
 
-    //TODO: get by username
 
-//
-//    //This method will update an ENTIRE employee record (PUT request)
-//    @PutMapping
-//    public ResponseEntity<Employee> updateEntireEmployee(@RequestBody Employee e){
-//
-//        //This Employee will either be null (if update fails) or the new Employee record
-//        Employee updatedEmployee = eDAO.updateEmployee(e);
-//
-//        //return the updated Employee
-//        return ResponseEntity.accepted().body(updatedEmployee);
-//
-//    }
+    //This method will update an ENTIRE employee record (PUT request)
+    @PutMapping
+    public ResponseEntity<Object> updateEntireEmployee(@RequestBody Employee employee){
+
+        try{
+            //if all goes well, return the updated employee with a 202 status code
+            return ResponseEntity.accepted().body(es.updateEntireEmployee(employee));
+        } catch (IllegalArgumentException e){
+            e.printStackTrace();
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+
+    }
 
     //TODO: patch for update username
 
