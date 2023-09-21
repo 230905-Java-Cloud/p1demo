@@ -119,6 +119,17 @@ public class EmployeeController {
 
     }
 
-    //TODO: patch for update username
+    //update Employee username
+    @PatchMapping("/{id}")
+    public ResponseEntity<Object> updateEmployeeUsername(@PathVariable("id") int id, @RequestBody String username){
+
+        try{
+            return ResponseEntity.accepted().body(es.updateEmployeeUsername(id, username));
+        } catch (IllegalArgumentException e){
+            e.printStackTrace();
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+
+    }
 
 }

@@ -68,4 +68,25 @@ public class EmployeeService {
 
     }
 
+    //PATCH request (updating only the username of an employee)
+    public Employee updateEmployeeUsername(int empId, String username){
+
+        //TODO: we could add username checks here similar to the PUT method
+
+        //Gather the employee by id
+        Optional<Employee> originalEmployee = eDAO.findById(empId);
+
+        if(originalEmployee.isPresent()){
+
+            Employee empToUpdate = originalEmployee.get();
+            empToUpdate.setUsername(username); //change the username to what was given in the params
+
+            return eDAO.save(empToUpdate); //perform the update
+
+        } else {
+            throw new IllegalArgumentException("Employee was not found! Aborting update.");
+        }
+
+    }
+
 }
