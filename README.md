@@ -4,6 +4,7 @@
 
 - Get all employees
 - Insert employee
+- Login
 - Get employee by Id
 - Get employee by username
 - Update entire employee (PUT)
