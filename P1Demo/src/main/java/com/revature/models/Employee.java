@@ -3,6 +3,7 @@ package com.revature.models;
 import org.springframework.stereotype.Component;
 
 import javax.persistence.*;
+import java.util.Collection;
 
 @Entity //This annotation registers this class as a DB table (AKA DB entities)
 @Table(name = "employees") //This lets us give the DB table a different name (and other properties)
@@ -29,7 +30,6 @@ public class Employee {
     //IMPORTANT NOTE: using @Column here will break this. @JoinColumn takes the role of @Column here
     private Role role;
 
-    //TODO: Ben will see if there's an easier way to insert employee (without helper variable)
 
     /* WHAT are fetch and cascade?
 
@@ -106,4 +106,5 @@ public class Employee {
                 ", role=" + role +
                 '}';
     }
+
 }

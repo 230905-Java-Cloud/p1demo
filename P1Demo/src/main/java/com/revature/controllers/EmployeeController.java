@@ -6,6 +6,7 @@ import com.revature.services.EmployeeService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.client.RestTemplate;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -21,7 +22,8 @@ public class EmployeeController {
     private EmployeeDAO eDAO;
     private EmployeeService es;
 
-    @Autowired //remember, spring boot will automagically inject an eDAO thanks to this annotation
+
+    @Autowired //remember, spring boot will automagically inject an eDAO/eService thanks to this annotation
     public EmployeeController(EmployeeDAO eDAO, EmployeeService es) {
         this.eDAO = eDAO;
         this.es = es;
@@ -42,14 +44,16 @@ public class EmployeeController {
 
     }
 
-
-    @PostMapping("/{id}") //this method accept HTTP POST requests ending in /employee
+    //this method accepts HTTP POST requests ending in /employee
+    //this method takes in an id in the path variable, which will get the Role object for the Employee
+    @PostMapping("/{id}")
     public ResponseEntity<Object> addEmployee(@RequestBody Employee employee, @PathVariable("id") int id){
 
         //thanks to @RequestBody in the parameter of this method...
         //the body of the request will get automatically converted into an Employee object called e
 
         try{
+
             //send the employee and roleId to the service. Saving it to a variable (for readability)
             Employee insertedEmp = es.insertEmployee(employee, id);
 
@@ -117,6 +121,25 @@ public class EmployeeController {
             e.printStackTrace();
             return ResponseEntity.badRequest().body(e.getMessage());
         }
+
+    }
+
+    //================================(THIS IS A DEMO OF RESTTEMPLATE, NOT SOMETHING FOR P1)
+
+    //RestTemplate will allow us to make HTTP requests to OTHER SERVERS from within this server
+
+    //we'll use the pokeapi to GET some pokemon data
+
+    @GetMapping("/pokemon/{name}")
+    public ResponseEntity<Object> getPokemonByName(@PathVariable("name") String name){
+
+        //instantiate a RestTemplate object (can also be done at the top of the class)
+        RestTemplate rt = new RestTemplate();
+
+        //here, we sent a get request for the pokemon with the user-inputted name
+        Object o = rt.getForEntity("https://pokeapi.co/api/v2/pokemon/" + name, Object.class);
+
+        return ResponseEntity.ok().body(o);
 
     }
 
