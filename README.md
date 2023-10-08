@@ -14,7 +14,7 @@
 
   ## Addons
 
-  - We added a Dockerfile in order to create Docker images of this API
+  - We added a Dockerfile in order to create Docker images of this API (which we can use to spin up a containerized P1Demo)
   - We added a deployment.yaml and a service.yaml for the sake of container orchestration with Minikube
   - Logs with Logback in week 7...
   - Again, JWT is not included in this repo! Check P1DemoWithJWT for that.
