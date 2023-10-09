@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Deployment #The kind of object I'm creating
+metadata:
+  name: p1 #arbitrary but important name
+spec:
+  replicas: 3 #3 replica pods will be made for this deployment
+  selector: #the selector and labels should match the ones in the service.yaml to create a pairing
+    matchLabels:
+      app: p1
+  template:
+    metadata:
+      labels:
+        app: p1
+    spec:
+      containers: #here's where we define info about the container that this deployment will spin up
+        - name: p1 #this will be the name of the container
+          image: benp3837/p1-image:secondtry #The image we want to base the container off of
+          imagePullPolicy: Never #We want to use local images, not images from a registry
+          ports:
+            - containerPort: 8080 #the container will run on port 8080 in the cluster
