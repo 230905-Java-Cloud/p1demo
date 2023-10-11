@@ -8,7 +8,7 @@ FROM amazoncorretto:11
 COPY target/app.jar app.jar
 
 # Next, we need to EXPOSE a port for HTTP traffic. The container will sit here.
-EXPOSE 8085
+EXPOSE 8080
 
 # The final thing we need to do is provide the CMD to start the application itself
 CMD ["java", "-jar", "app.jar"]
