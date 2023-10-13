@@ -249,9 +249,358 @@ eksctl delete cluster --name p1-demo
 eksctl delete cluster --name {cluster-name}
 ```
 
+# Helm 
+
+Brief aside about Helm is a package manager for Kubernetes applications, simplifying the deployment and management of applications on Kubernetes clusters. It enables you to define, install, and upgrade even the most complex Kubernetes applications.
+
+[Helm Documentation](https://helm.sh/docs/)
+
+## Key Concepts
+
+### Chart
+
+- A Helm package is called a **Chart**.
+- A Chart is a collection of pre-configured Kubernetes resources that define a set of microservices.
+- Charts can be shared and reused across different projects.
+
+### Repository
+
+- A **Repository** is a place where Helm Charts can be stored and retrieved.
+- Helm Charts can be stored in public repositories like Helm Hub or private repositories.
+
+### Release
+
+- An instance of a Helm Chart installed in a Kubernetes cluster is called a **Release**.
+- Multiple releases of the same chart can coexist in a single cluster.
+
+### Values
+
+- **Values** are parameters that can be passed to a Helm Chart during installation.
+- They allow customization of the configuration settings in the Chart.
+
+### Template
+
+- Helm uses Go templates to render YAML files dynamically.
+- **Templates** enable parameterization and reuse of YAML configurations across different environments.
+
+## **How Helm Works**
+
+**Client-Server Architecture:**
+- Helm follows a client-server architecture where the Helm client interacts with the Tiller server deployed in the Kubernetes cluster.
+
+**Chart Packaging:**
+- Charts are packaged into a compressed archive that includes the chart's YAML files, templates, and metadata.
+
+**Tiller Server:**
+- Tiller is the server-side component of Helm installed in the Kubernetes cluster.
+- It manages the release lifecycle and interacts with the Kubernetes API server.
+
+**Helm Client:**
+- Helm CLI is the client-side component that runs on the developer's machine.
+- It sends commands to Tiller to manage Helm releases.
+
+## **Helm Charts Anatomy**
+
+**Chart.yaml:**
+- Contains metadata about the chart, including version, description, and dependencies.
+
+**Values.yaml:**
+- Default configuration values used by the templates.
+
+**templates/:**
+- Directory containing Go templates for Kubernetes YAML files.
+
+## **Helm Common Commands**
+
+```bash
+# Install a chart to the current namespace
+helm install {release-name} {chart-name}
+
+# Uninstall a chart to the current namespace
+helm uninstall {release-name} {chart-name}
+
+# List all releases for a specified namespace (uses current namespace by default)
+helm list
+
+# Search for a repo with helm
+helm search repo {keyword}
+```
+
 # Lambda with AWS Controller for Kubernetes (ACK)
 
-***Update coming***
+## Install the ACK service controller for Lambda
 
+Log into the Helm registry that stores the ACK charts:
 
+```bash
+# Note this command ONLY works if you specify us-east-1 as your region, all other regions are locked from public access to the ECR public repo. This is an AWS thing.
+aws ecr-public get-login-password --region us-east-1 | helm registry login --username AWS --password-stdin public.ecr.aws
+```
 
+Deploy the ACK service controller for Amazon Lambda using the [lambda-chart Helm chart](https://gallery.ecr.aws/aws-controllers-k8s/lambda-chart). This example creates resources in the `us-east-1` region, but you can use any other region supported in AWS.
+
+```bash
+# The following command will install and create a space on our cluster to house our ack-system on our kubernetes cluster. This will pull the chart from aws's ecr.
+helm install --create-namespace -n ack-system oci://public.ecr.aws/aws-controllers-k8s/lambda-chart --version=1.3.4 --generate-name --set=aws.region=us-east-1
+```
+
+For a full list of available values to the Helm chart, please [review the values.yaml file](https://github.com/aws-controllers-k8s/lambda-controller/blob/main/helm/values.yaml).
+
+## Configure IAM permissions
+
+Once the service controller is deployed [configure the IAM permissions](https://aws-controllers-k8s.github.io/community/docs/user-docs/irsa/) for the
+controller to invoke the Lambda API. For full details, please review the AWS Controllers for Kubernetes documentation
+for [how to configure the IAM permissions](https://aws-controllers-k8s.github.io/community/docs/user-docs/irsa/). If you follow the examples in the documentation, use the
+value of `lambda` for `SERVICE`.
+
+# IAM Policy
+
+## OIDC Identity provider
+
+The OpenIDConnect (OIDC) identity provider for you EKS clusteris an IAM entity that describes an external identity provider service.This is useful when creating a mobile app or web application that requires access to AWS resources, but you don't want to create custom sign-in code or manage your own user identities. 
+
+```bash
+# Project specific
+eksctl utils associate-iam-oidc-provider --cluster p1-demo --region us-east-1 --approve
+```
+
+## lambda-ack-policy
+The below JSON is found from the aws-controller-k8s github page for their [recommended inline policy](https://github.com/aws-controllers-k8s/lambda-controller/blob/main/config/iam/recommended-inline-policy). We must go to IAM, creating the below policy called `lambda-ack-policy`. 
+
+```json
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": [
+                "lambda:*",
+                "s3:Get*",
+                "ecr:Get*",
+                "ecr:BatchGet*",
+                "ec2:DescribeSecurityGroups",
+                "ec2:DescribeSubnets",
+                "ec2:DescribeVpcs"
+            ],
+            "Resource": "*"
+        },
+        {
+            "Action": "iam:PassRole",
+            "Condition": {
+                "StringEquals": {
+                    "iam:PassedToService": "lambda.amazonaws.com"
+                }
+            },
+            "Effect": "Allow",
+            "Resource": "*"
+        }
+    ]
+}
+```
+
+Once the above is done, we can attach this policy to our IAM role `ack-lambda-controller`. Within the Trust Relationshipo of our role here, we should provide the following for our specific project:
+
+### Project Specific
+We can find out our `oidc-provider` by executing the following:
+
+```bash
+aws eks describe-cluster --name p1-demo --region us-east-1 --query "cluster.identity.oidc.issuer" --output text | sed -e "s/^https:\/\///"
+
+# Result should look like: 
+#      oidc.eks.us-east-1.amazonaws.com/id/6A8EFD31DB95967B09554C72A53A2BA7
+```
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "Federated": "arn:aws:iam::296271419447:oidc-provider/oidc.eks.us-east-1.amazonaws.com/id/6A8EFD31DB95967B09554C72A53A2BA7"
+      },
+      "Action": "sts:AssumeRoleWithWebIdentity",
+      "Condition": {
+        "StringEquals": {
+          "oidc.eks.us-east-1.amazonaws.com/id/6A8EFD31DB95967B09554C72A53A2BA7:sub": "system:serviceaccount:ack-system:ack-lambda-controller"
+        }
+      }
+    }
+  ]
+}
+```
+
+Here is a generalized variant to replace in the sections wrapped with `{}`
+
+### Generalized
+
+Find out your `oidc-provider` by running the following command:
+
+```bash
+aws eks describe-cluster --name {app-name} --region {your-aws-region} --query "cluster.identity.oidc.issuer" --output text | sed -e "s/^https:\/\///"
+
+# Result should look like: 
+#      oidc.eks.us-east-1.amazonaws.com/id/6A8EFD31DB95967B09554C72A53A2BA7
+```
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "Federated": "arn:aws:iam::{AWS_ACCOUNT_ID}:oidc-provider/{oidc-provider}"
+      },
+      "Action": "sts:AssumeRoleWithWebIdentity",
+      "Condition": {
+        "StringEquals": {
+          "{oidc-provider}:sub": "system:serviceaccount:ack-system:ack-lambda-controller"
+        }
+      }
+    }
+  ]
+}
+```
+
+## Create Lambda function handler - SpringWithLambda
+
+### Dockerfile
+
+***IMPORTANT*** Prior to running out `docker build` Run `mvn clean package` on the singular function you wish to keep, this will generate the aws.jar we need to include within our docker image.
+
+```dockerfile
+FROM public.ecr.aws/lambda/java:11
+
+#the docker build command is running at my project root directory
+COPY target/*-aws.jar ${LAMBDA_TASK_ROOT}/lib/
+
+CMD ["org.springframework.cloud.function.adapter.aws.FunctionInvoker::handleRequest"]
+```
+
+```bash
+# Project Specific
+# Create our Lambda Image, best testing would be to manually pull the image on AWS as this is specific to AWS 
+docker build -t spring-lambda .
+
+# Create ECR Repo on AWS, one should be made per image
+aws ecr create-repository --repository-name spring-lambda
+
+# Authenticate Your Terminal to access the ECR
+# NOTE: If you're following a long from above most likely you won't need to do this again
+aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 296271419447.dkr.ecr.us-east-1.amazonaws.com
+
+# Tag your image to the ECR Repo
+docker tag spring-lambda:latest 296271419447.dkr.ecr.us-east-1.amazonaws.com/spring-lambda:latest
+
+# Push to the ECR Repo
+docker push 296271419447.dkr.ecr.us-east-1.amazonaws.com/spring-lambda
+
+###################################################################
+
+# Generalized
+# Create our Lambda Image, best testing would be to manually pull the image on AWS as this is specific to AWS 
+docker build -t {name-of-project-image} .
+
+# Create ECR Repo on AWS, one should be made per image
+aws ecr create-repository --repository-name {name-of-project-image}
+
+# Authenticate Your Terminal to access the ECR
+aws ecr get-login-password --region {your-aws-region} | docker login --username AWS --password-stdin {aws-account-id}.dkr.ecr.{your-aws-region}.amazonaws.com
+
+# Tag your image to the ECR Repo
+docker tag {name-of-project-image}:latest {aws-account-id}.dkr.ecr.us-{your-aws-region}.amazonaws.com/{name-of-project-image}:latest
+
+# Push to the ECR Repo
+docker push {aws-account-id}.dkr.ecr.{your-aws-region}.amazonaws.com/{name-of-project-image}
+```
+## Lambda Function & FunctionURLConfig YAML
+
+[Lambda Function YAML Docs](https://aws-controllers-k8s.github.io/community/reference/lambda/v1alpha1/function/)
+
+[Lambda FunctionURLConfig YAML Docs](https://aws-controllers-k8s.github.io/community/reference/lambda/v1alpha1/functionurlconfig/)
+
+### Project Specific 
+
+```yaml
+apiVersion: lambda.services.k8s.aws/v1alpha1
+kind: FunctionURLConfig
+metadata:
+  name: url-config
+spec:
+  authType: NONE
+  functionName: lambda-oci-ack
+---
+apiVersion: lambda.services.k8s.aws/v1alpha1
+kind: Function
+metadata:
+  name: lambda-oci-ack
+  annotations:
+    services.k8s.aws/region: us-east-1
+spec:
+  name: lambda-oci-ack
+  packageType: Image
+  code:
+    imageURI: 296271419447.dkr.ecr.us-east-1.amazonaws.com/lamba-get-items:latest
+  role: arn:aws:iam::296271419447:role/ack-lambda-controller
+  description: function created by ACK lambda-controller e2e tests
+  memorySize: 256
+```
+
+### Generalized 
+
+```yaml
+apiVersion: lambda.services.k8s.aws/v1alpha1
+kind: FunctionURLConfig
+metadata:
+  name: url-config
+spec:
+  authType: NONE
+  functionName: lambda-oci-ack
+---
+apiVersion: lambda.services.k8s.aws/v1alpha1
+kind: Function
+metadata:
+  name: lambda-oci-ack
+  annotations:
+    services.k8s.aws/region: {your-aws-region}
+spec:
+  name: lambda-oci-ack
+  packageType: Image
+  code:
+    imageURI: {aws-account-id}.dkr.ecr.{your-aws-region}.amazonaws.com/lamba-get-items:latest
+  role: arn:aws:iam::{aws-account-id}:role/ack-lambda-controller
+  description: function created by ACK lambda-controller e2e tests
+  memorySize: 256
+```
+
+### Generate AWS Lambda through Kubernetes
+Once you've generated this file, navigate to it in your terminal so we can begin using our `kubectl` command again to let kubernete control AWS Services!!!
+
+```bash
+# Command creates the function on AWS Lambda
+kubectl create -f function.yaml
+
+# Command will give all the details including the Function URL Endpoint
+kubectl describe function/lambda-oci-ack
+
+## NOTE: The Function URL will fail until you proceed forward to the next step
+```
+
+### Expose URL to public
+
+In this step, we utilize `aws lambda` command to add permissions to our function that allow our Function URL endpoint to have public access, so it can handle traffic from the world-wide web. 
+
+```bash
+# Command to add new permissions to the Lambda Function
+aws lambda add-permission --function-name lambda-oci-ack --statement-id FunctionURLAllowPublicAccess --principal "*" --action "lambda:InvokeFunctionUrl" --function-url-auth-type NONE
+```
+
+You can now make requests to the Function URL Endpoint! Enjoy!
+
+### Deletion of Function
+
+```bash
+# Command will kill the function
+kubectl delete -f function.yaml
+```
