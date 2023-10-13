@@ -425,6 +425,13 @@ aws eks describe-cluster --name p1-demo --region us-east-1 --query "cluster.iden
           "oidc.eks.us-east-1.amazonaws.com/id/6A8EFD31DB95967B09554C72A53A2BA7:sub": "system:serviceaccount:ack-system:ack-lambda-controller"
         }
       }
+    },
+    {
+      "Effect": "Allow",
+      "Principal": {
+          "Service": "lambda.amazonaws.com"
+      },
+      "Action": "sts:AssumeRole"
     }
   ]
 }
@@ -458,9 +465,28 @@ aws eks describe-cluster --name {app-name} --region {your-aws-region} --query "c
           "{oidc-provider}:sub": "system:serviceaccount:ack-system:ack-lambda-controller"
         }
       }
+    },
+    {
+      "Effect": "Allow",
+      "Principal": {
+          "Service": "lambda.amazonaws.com"
+      },
+      "Action": "sts:AssumeRole"
     }
   ]
 }
+```
+
+### Associate IAM Role to a Service 
+
+Finally we must annotate the service account for our ack-system to include the newly created role. Once that's complete we must restart this service so those new environment variables are accessible to the service.
+
+```bash
+# This adds the annotation of our ack-lambda-controller role so the service knows to integrate with it when started
+kubectl annotate serviceaccount -n ack-system ack-lambda-controller eks.amazonaws.com/role-arn=arn:aws:iam::296271419447:role/ack-lambda-controller
+
+# This refreshes the system to allow for the lambda-chart deployment to be connected to the IAM role it needs to deploy a Lambda Function
+kubectl -n ack-system rollout restart deployment lambda-chart-1697222412
 ```
 
 ## Create Lambda function handler - SpringWithLambda
